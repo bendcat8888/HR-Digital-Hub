@@ -1,4 +1,4 @@
-# HR Portal Hub
+# Internal Centralize Portal Hub
 
 Internal web portal for InnoGen teams to access forms, tools, directory data, and support links from one place.
 
