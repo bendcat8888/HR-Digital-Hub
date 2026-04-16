@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fleet Portal • InnoGen Portal Hub</title>
+    <link rel="icon" type="image/png" href="../assets/img/favicon.png">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body class="bg-slate-50 text-slate-900 font-sans min-h-screen">
+    <header class="bg-white border-b border-slate-200 sticky top-0 z-10 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <a href="../index.html" class="inline-flex items-center gap-2 px-3 py-2 rounded-xl text-slate-600 hover:bg-slate-100 transition-colors">
+                    <i data-lucide="arrow-left" class="w-4 h-4"></i>
+                    <span class="text-sm font-semibold">Back</span>
+                </a>
+                <h1 class="text-lg sm:text-xl font-bold tracking-tight text-slate-800 flex items-center gap-2">
+                    <img src="../assets/img/InnoGen.png" alt="InnoGen badge" class="h-8 w-auto object-contain">
+                    <span class="brand-text">Fleet Portal</span>
+                    <img src="../assets/img/logo.png" alt="InnoGen logo" class="h-8 w-8 object-contain">
+                </h1>
+            </div>
+            <div class="flex items-center gap-4">
+                <button class="p-2 text-slate-500 hover:bg-slate-100 rounded-full transition-colors" type="button" aria-label="Notifications">
+                    <i data-lucide="bell" class="w-5 h-5"></i>
+                </button>
+                <div class="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-slate-600 font-semibold border border-slate-300">
+                    BC
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <section class="mb-8">
+            <div class="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 shadow-sm">
+                <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+                    <div class="max-w-2xl">
+                        <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-indigo-50 text-indigo-700 text-xs font-semibold border border-indigo-100">
+                            <i data-lucide="car" class="w-4 h-4"></i>
+                            <span>Finance • Fleet</span>
+                        </div>
+                        <h2 class="mt-4 text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900">Vehicle requests, tracking, and maintenance</h2>
+                        <p class="mt-2 text-slate-600">Quick access to fleet apps for VRR submissions, maintenance visibility, and PMS schedules.</p>
+                        <div class="mt-5 flex flex-wrap items-center gap-2 text-xs text-slate-500">
+                            <span class="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-slate-50 border border-slate-200">
+                                <i data-lucide="external-link" class="w-4 h-4 text-indigo-600"></i>
+                                Opens in new tab
+                            </span>
+                            <span class="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-slate-50 border border-slate-200">
+                                <i data-lucide="shield-check" class="w-4 h-4 text-emerald-600"></i>
+                                Internal access
+                            </span>
+                            <span class="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-slate-50 border border-slate-200">
+                                <i data-lucide="search" class="w-4 h-4 text-slate-500"></i>
+                                Quick search
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="w-full lg:max-w-md">
+                        <div class="relative group">
+                            <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-indigo-500 transition-colors">
+                                <i data-lucide="search" class="w-5 h-5"></i>
+                            </div>
+                            <input
+                                type="text"
+                                id="fleet-search"
+                                class="block w-full pl-12 pr-4 py-4 border-slate-200 border-2 rounded-2xl focus:ring-4 focus:ring-indigo-100 focus:border-indigo-500 transition-all outline-none shadow-sm bg-white"
+                                placeholder="Search fleet apps (VRR, repair, pms...)"
+                                autocomplete="off"
+                            >
+                        </div>
+
+                        <div class="mt-4 flex flex-wrap gap-2" id="fleet-category-chips" aria-label="Categories"></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="mb-6">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div class="flex items-center gap-2">
+                    <h3 class="text-lg font-bold text-slate-900">Fleet Apps</h3>
+                    <span class="text-xs font-semibold text-slate-500 bg-slate-100 border border-slate-200 px-2 py-1 rounded-lg" id="fleet-count">0</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button type="button" id="fleet-clear-filters" class="text-sm font-semibold text-slate-600 hover:text-slate-900 px-3 py-2 rounded-xl hover:bg-slate-100 transition-colors">
+                        Clear filters
+                    </button>
+                    <div class="relative">
+                        <select id="fleet-sort-by" class="text-sm font-semibold text-slate-700 bg-white border border-slate-200 rounded-xl px-3 py-2 pr-10 focus:outline-none focus:ring-4 focus:ring-indigo-100 focus:border-indigo-500">
+                            <option value="popular">Sort: Popular</option>
+                            <option value="az">Sort: A → Z</option>
+                        </select>
+                        <div class="pointer-events-none absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400">
+                            <i data-lucide="chevron-down" class="w-4 h-4"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section>
+            <div id="fleet-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+
+            <div id="fleet-empty" class="hidden py-16 text-center">
+                <div class="inline-flex items-center justify-center w-16 h-16 bg-slate-100 rounded-full text-slate-400 mb-4">
+                    <i data-lucide="search-x" class="w-8 h-8"></i>
+                </div>
+                <h3 class="text-xl font-semibold text-slate-800">No apps found</h3>
+                <p class="text-slate-500 mt-1">Try a different keyword or clear filters.</p>
+            </div>
+        </section>
+    </main>
+
+    <div id="fleet-toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 hidden">
+        <div class="bg-slate-900 text-white px-4 py-3 rounded-2xl shadow-lg border border-slate-800 text-sm flex items-center gap-2">
+            <i data-lucide="info" class="w-4 h-4"></i>
+            <span id="fleet-toast-text">Ready.</span>
+        </div>
+    </div>
+
+    <footer class="mt-auto py-8 border-t border-slate-200 text-center text-slate-500 text-sm">
+        <p>© 2026 InnoGen Portal Hub • Fleet</p>
+    </footer>
+
+    <script src="../assets/js/fleet-portal.js"></script>
+</body>
+</html>

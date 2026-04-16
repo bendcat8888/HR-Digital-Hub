@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Local Numbers • InnoGen Portal Hub</title>
+    <link rel="icon" type="image/png" href="../assets/img/favicon.png">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body class="bg-slate-50 text-slate-900 font-sans min-h-screen">
+    <header class="bg-white border-b border-slate-200 sticky top-0 z-10 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <a href="directory.html" class="inline-flex items-center gap-2 px-3 py-2 rounded-xl text-slate-600 hover:bg-slate-100 transition-colors">
+                    <i data-lucide="arrow-left" class="w-4 h-4"></i>
+                    <span class="text-sm font-semibold">Back</span>
+                </a>
+                <h1 class="text-lg sm:text-xl font-bold tracking-tight text-slate-800 flex items-center gap-2">
+                    <img src="../assets/img/InnoGen.png" alt="InnoGen badge" class="h-8 w-auto object-contain">
+                    <span class="brand-text">Local Numbers</span>
+                    <img src="../assets/img/logo.png" alt="InnoGen logo" class="h-8 w-8 object-contain">
+                </h1>
+            </div>
+            <div class="flex items-center gap-4">
+                <button class="p-2 text-slate-500 hover:bg-slate-100 rounded-full transition-colors" type="button" aria-label="Notifications">
+                    <i data-lucide="bell" class="w-5 h-5"></i>
+                </button>
+                <div class="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-slate-600 font-semibold border border-slate-300">
+                    BC
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <section class="mb-8">
+            <div class="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 shadow-sm">
+                <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+                    <div class="max-w-2xl">
+                        <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-violet-50 text-violet-700 text-xs font-semibold border border-violet-100">
+                            <i data-lucide="phone-call" class="w-4 h-4"></i>
+                            <span>Directory • Locals</span>
+                        </div>
+                        <h2 class="mt-4 text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900">Search internal local numbers</h2>
+                        <p class="mt-2 text-slate-600">Quickly find the extension number for employees and departments across the company.</p>
+                        <div class="mt-5 flex flex-wrap items-center gap-2 text-xs text-slate-500">
+                            <span class="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-slate-50 border border-slate-200">
+                                <i data-lucide="search" class="w-4 h-4 text-slate-500"></i>
+                                Searchable
+                            </span>
+                            <span class="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-slate-50 border border-slate-200">
+                                <i data-lucide="clipboard-copy" class="w-4 h-4 text-indigo-600"></i>
+                                Copy number
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="w-full lg:max-w-md">
+                        <div class="relative group">
+                            <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-indigo-500 transition-colors">
+                                <i data-lucide="search" class="w-5 h-5"></i>
+                            </div>
+                            <input
+                                type="text"
+                                id="local-search"
+                                class="block w-full pl-12 pr-4 py-4 border-slate-200 border-2 rounded-2xl focus:ring-4 focus:ring-indigo-100 focus:border-indigo-500 transition-all outline-none shadow-sm bg-white"
+                                placeholder="Search number, user, or dept..."
+                                autocomplete="off"
+                            >
+                        </div>
+
+                        <div class="mt-4 flex items-center justify-between gap-3">
+                            <div class="text-xs font-semibold text-slate-500 bg-slate-100 border border-slate-200 px-2 py-1 rounded-lg" id="local-count">0</div>
+                            <div class="relative">
+                                <select id="local-sort" class="text-sm font-semibold text-slate-700 bg-white border border-slate-200 rounded-xl px-3 py-2 pr-10 focus:outline-none focus:ring-4 focus:ring-indigo-100 focus:border-indigo-500">
+                                    <option value="number-asc">Sort: Number (Asc)</option>
+                                    <option value="number-desc">Sort: Number (Desc)</option>
+                                    <option value="dept">Sort: Department</option>
+                                </select>
+                                <div class="pointer-events-none absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400">
+                                    <i data-lucide="chevron-down" class="w-4 h-4"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section>
+            <div class="bg-white border border-slate-200 rounded-3xl shadow-sm overflow-hidden">
+                <div class="px-6 py-4 border-b border-slate-200 flex items-center justify-between gap-4">
+                    <div class="flex items-center gap-2">
+                        <h3 class="text-lg font-bold text-slate-900">Local Numbers List</h3>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button type="button" id="local-clear" class="text-sm font-semibold text-slate-600 hover:text-slate-900 px-3 py-2 rounded-xl hover:bg-slate-100 transition-colors">
+                            Clear
+                        </button>
+                    </div>
+                </div>
+
+                <div id="local-table-wrap" class="overflow-auto privacy-watermark">
+                    <table class="min-w-full text-sm">
+                        <thead class="bg-slate-50 border-b border-slate-200">
+                            <tr class="text-left text-slate-600">
+                                <th class="px-6 py-3 font-semibold">Local</th>
+                                <th class="px-6 py-3 font-semibold">User</th>
+                                <th class="px-6 py-3 font-semibold">Area / Department</th>
+                                <th class="px-6 py-3 font-semibold w-24">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="local-tbody" class="divide-y divide-slate-100"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <p class="mt-3 text-xs text-rose-700 bg-rose-50 border border-rose-100 rounded-xl px-3 py-2">
+                Privacy Notice: Bulk copy/select and context menu actions are restricted on this page.
+            </p>
+
+            <div id="local-empty" class="hidden py-16 text-center">
+                <div class="inline-flex items-center justify-center w-16 h-16 bg-slate-100 rounded-full text-slate-400 mb-4">
+                    <i data-lucide="search-x" class="w-8 h-8"></i>
+                </div>
+                <h3 class="text-xl font-semibold text-slate-800">No matches found</h3>
+                <p class="text-slate-500 mt-1">Try a different keyword or clear the search.</p>
+            </div>
+        </section>
+    </main>
+
+    <div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 hidden">
+        <div class="bg-slate-900 text-white px-4 py-3 rounded-2xl shadow-lg border border-slate-800 text-sm flex items-center gap-2">
+            <i data-lucide="info" class="w-4 h-4"></i>
+            <span id="toast-text">Ready.</span>
+        </div>
+    </div>
+
+    <footer class="mt-auto py-8 border-t border-slate-200 text-center text-slate-500 text-sm">
+        <p>© 2026 InnoGen Portal Hub • Directory</p>
+    </footer>
+
+    <script src="../assets/js/local-numbers.js"></script>
+</body>
+</html>
