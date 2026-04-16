@@ -1,65 +1,72 @@
-# Internal Centralize Portal Hub
+# 🏢 Internal Centralize Portal Hub
+**Unified Enterprise Resource Planning (ERP) Gateway & Employee Directory**
 
-Internal web portal for InnoGen teams to access forms, tools, directory data, and support links from one place.
+[![HTML5](https://img.shields.io/badge/HTML5-E34F26?style=for-the-badge&logo=html5&logoColor=white)](https://developer.mozilla.org/en-US/docs/Web/HTML)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
+[![JavaScript](https://img.shields.io/badge/JavaScript-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black)](https://developer.mozilla.org/en-US/docs/Web/JavaScript)
 
-## Features
+## 🛠 Tech Stack
 
-- Centralized hub cards on `index.html`
-- Searchable internal pages:
-  - Corporate Email Accounts
-  - Local Numbers
-  - Corporate Contact Numbers (TAB-delimited source)
-- Privacy-focused UI behavior on directory list pages (restricted bulk copy/select)
-- IT Support cards with modal prompt and `mailto:` fallback
+| Category | Tools |
+| :--- | :--- |
+| **Frontend** | **Tailwind CSS** (Utility-first UI), HTML5, Lucide Icons |
+| **Logic** | Vanilla JavaScript (Dynamic Search & Filter Engines) |
+| **Data Handling** | Asynchronous CSV/TXT/JSON Parsing |
+| **Architecture** | Component-based Static Hub (Optimized for low-latency internal networks) |
+| **Security** | Privacy-focused DOM manipulation (Anti-Scraping measures) |
 
-## Tech Stack
+---
 
-- Static HTML/CSS/JavaScript
-- Tailwind CSS (CDN)
-- Lucide Icons (CDN)
+## 🎯 Project Overview
+The **Internal Centralize Portal Hub** serves as the "Digital Nervous System" for InnoGen. It is a high-performance, searchable gateway designed to eliminate information silos. It provides employees with a single point of access for corporate tools, IT support, and verified directory data.
 
-## Project Structure
+### 🌟 High-Value Business Logic
+* **Centralized Resource Management:** Aggregates disparate company resources into a unified, intuitive dashboard.
+* **Intelligent Search Engine:** Features a real-time, searchable directory for corporate emails, local extensions, and mobile numbers.
+* **IT Support Integration:** Streamlined support cards with automated modal prompts and secure `mailto:` fallback protocols.
 
-- `index.html` - Main hub landing page
-- `pages/` - Feature pages
-- `assets/css/` - Shared styles
-- `assets/js/` - Page scripts
-- `resources/` - Internal data files (CSV/TXT/PDF/XLSX)
+---
 
-## Local Run (Static)
+## 🚀 Key Professional Capabilities
 
-Use any static server. Example:
+### 🛡️ Privacy & Data Integrity
+* **Anti-Bulk Export Logic:** Implemented UI-level restrictions on directory pages to prevent unauthorized bulk copying or selection of sensitive contact lists.
+* **Air-Gapped Privacy:** Designed as a static-first tool to ensure that sensitive company data remains strictly within the local intranet environment.
+* **Audit-Ready Architecture:** Designed with an optional **FastAPI/Nginx upgrade path** for enterprise-grade IP audit logging and authentication.
 
+### 🎨 Modern UI/UX Design
+* **Responsive Hub Cards:** A mobile-friendly, card-based interface that ensures accessibility across office desktops and field-team mobile devices.
+* **Dynamic Content Loading:** Optimized to parse internal resources (CSV/TXT) on the fly, ensuring that the directory is always as current as the source files.
+
+---
+
+## ⚙️ Directory Structure & Run Guide
+
+### Project Layout
+- `index.html`: The core landing hub.
+- `pages/`: Independent modules for Email, Local Numbers, and Contact lists.
+- `resources/`: Secured data layer for internal CSV/TXT files.
+
+### Local Deployment
+To run the portal for local testing:
 ```bash
-python3 -m http.server 8517 --directory "HR_Portal/HR Portal Hub/"
+python3 -m http.server 8517
 ```
 
-Open: `http://<host>:8517/`
+Access the portal at: `http://localhost:8517/`
 
-## Privacy & Security Notes
+---
 
-This project may include internal company contact data.
+## 📜 License & Intellectual Property
+**Copyright (c) 2026 Benedic Cater / InnoGen Pharmaceuticals Inc. (Solvang)**
 
-- Keep repository **Private**
-- Do **not** publish sensitive `resources/` files publicly
-- Prefer backend/API-based auditing for production compliance
+**All Rights Reserved.**
+This repository is published for **portfolio review and technical demonstration purposes only.**
 
-Suggested `.gitignore` entries:
+**Strict Restrictions:**
+- **No Reproduction:** No part of this code may be copied, modified, or distributed.
+- **Brand Protection:** Use of the "InnoGen" or "Solvang" name, branding, or logos is strictly prohibited.
+- **Data Privacy:** Use of any proprietary data or business logic contained herein for commercial or personal projects is strictly prohibited.
 
-```gitignore
-resources/EmailAccounts2.csv
-resources/company-mobile-numbers.txt
-resources/local_directory.csv
-portal.log
-```
+_For professional inquiries or permission requests, please contact Benedic Cater._
 
-## GitHub Publish (Recommended)
-
-1. Initialize git repo
-2. Commit code
-3. Publish to a **Private** GitHub repository
-4. Verify sensitive resource files are excluded before push
-
-## Optional Backend Upgrade
-
-For authentication and accurate proxy-aware IP audit logging, integrate FastAPI behind Nginx with trusted forwarded headers.
