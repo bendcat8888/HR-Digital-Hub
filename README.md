@@ -9,6 +9,10 @@
 [![Redis](https://img.shields.io/badge/Redis-DC382D?style=for-the-badge&logo=redis&logoColor=white)](https://redis.io/)
 [![Docker](https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white)](https://www.docker.com/)
 
+<p align="center">
+  <img src="docs/images/digital-hub.png" alt="InnoGen Digital Hub screenshot" width="900" />
+</p>
+
 ## 🛠 Tech Stack
 
 | Category | Tools |
