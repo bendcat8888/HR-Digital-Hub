@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>InnoGen Portal Hub</title>
+    <title>InnoGen One • Digital Hub</title>
     <link rel="icon" type="image/png" href="assets/img/favicon.png">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
@@ -16,7 +16,7 @@
             <div class="flex items-center gap-2">
                 <h1 class="text-xl font-bold tracking-tight text-slate-800 flex items-center gap-2">
                     <img src="assets/img/InnoGen.png" alt="InnoGen badge" class="h-8 w-auto object-contain">
-                    <span class="brand-text">Portal Hub</span>
+                    <span class="brand-text">Digital Hub</span>
                     <img src="assets/img/logo.png" alt="InnoGen logo" class="h-8 w-8 object-contain">
                 </h1>
             </div>
@@ -24,8 +24,28 @@
                 <button class="p-2 text-slate-500 hover:bg-slate-100 rounded-full transition-colors">
                     <i data-lucide="bell" class="w-5 h-5"></i>
                 </button>
-                <div class="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-slate-600 font-semibold border border-slate-300">
-                    BC
+                <div class="profile-shell">
+                    <button id="profile-button" type="button" class="profile-badge" aria-haspopup="menu" aria-expanded="false" aria-label="Open profile menu">
+                        <span id="profile-initials" class="profile-badge__text">BC</span>
+                    </button>
+                    <div id="profile-menu" class="profile-menu hidden" role="menu" aria-label="Profile menu">
+                        <div class="profile-menu__header">
+                            <div id="profile-menu-avatar" class="profile-menu__avatar">BC</div>
+                            <div class="min-w-0">
+                                <div id="profile-menu-email" class="profile-menu__email">Loading...</div>
+                                <div id="profile-menu-domain" class="profile-menu__domain">Managed by innogen-pharma.com</div>
+                            </div>
+                        </div>
+                        <div class="profile-menu__divider"></div>
+                        <button id="manage-account-button" type="button" class="profile-menu__item" role="menuitem">
+                            <i data-lucide="settings-2" class="profile-menu__icon"></i>
+                            <span>Manage your Account</span>
+                        </button>
+                        <button id="signout-button" type="button" class="profile-menu__item profile-menu__item--danger" role="menuitem">
+                            <i data-lucide="log-out" class="profile-menu__icon"></i>
+                            <span>Sign Out</span>
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -50,7 +70,9 @@
         <!-- Hero Section & Search -->
         <section class="mb-12 text-center">
             
-            <h2 class="text-3xl font-extrabold text-slate-900 sm:text-4xl mb-4">Centralized Internal Resources</h2>
+            <h2 class="hero-title text-3xl font-extrabold text-slate-900 sm:text-4xl mb-4">
+                <span>InnoGen</span><span class="hero-one">One</span><span>Digital Hub</span>
+            </h2>
             <p class="text-lg text-slate-600 max-w-2xl mx-auto mb-8">Access all internal tools, forms, and applications in one place.</p>
             
             <div class="max-w-xl mx-auto relative group">
@@ -117,6 +139,69 @@
                 </button>
             </div>
             <p id="privacy-consent-status" class="mt-4 min-h-5 text-xs text-slate-500"></p>
+        </div>
+    </div>
+
+    <div id="account-modal" class="account-modal hidden" role="dialog" aria-modal="true" aria-labelledby="account-modal-title">
+        <div class="account-modal__backdrop"></div>
+        <div class="account-modal__panel">
+            <button id="account-modal-close" type="button" class="account-modal__close" aria-label="Close account manager">
+                <i data-lucide="x" class="h-5 w-5"></i>
+            </button>
+
+            <div class="account-modal__hero">
+                <div class="account-modal__avatar-wrap">
+                    <div id="account-avatar" class="account-modal__avatar">BC</div>
+                    <button id="account-photo-button" type="button" class="account-modal__photo-button" aria-label="Upload profile photo">
+                        <i data-lucide="camera" class="h-4 w-4"></i>
+                    </button>
+                    <input id="account-photo-input" type="file" accept="image/*" hidden>
+                </div>
+                <div>
+                    <div class="account-modal__eyebrow">Manage your Account</div>
+                    <h2 id="account-modal-title" class="account-modal__title">Profile settings</h2>
+                    <p class="account-modal__subtitle">Update your picture and account details.</p>
+                </div>
+            </div>
+
+            <div class="account-modal__grid">
+                <section class="account-modal__card">
+                    <label for="account-display-name" class="account-modal__label">Display name</label>
+                    <input id="account-display-name" type="text" class="account-modal__input" readonly>
+
+                    <label for="account-email" class="account-modal__label">Email address</label>
+                    <input id="account-email" type="email" class="account-modal__input" readonly>
+
+                    <label for="account-domain" class="account-modal__label">Account domain</label>
+                    <input id="account-domain" type="text" class="account-modal__input" readonly>
+                </section>
+
+                <section id="account-password-section" class="account-modal__card account-modal__card--soft hidden">
+                    <div class="account-modal__section-head">
+                        <div>
+                            <h3 class="account-modal__section-title">Change password</h3>
+                            <p class="account-modal__section-copy">Available for .ph accounts.</p>
+                        </div>
+                    </div>
+
+                    <label for="current-password" class="account-modal__label">Current password</label>
+                    <input id="current-password" type="password" class="account-modal__input" placeholder="Current password">
+
+                    <label for="new-password" class="account-modal__label">New password</label>
+                    <input id="new-password" type="password" class="account-modal__input" placeholder="New password">
+
+                    <label for="confirm-password" class="account-modal__label">Confirm password</label>
+                    <input id="confirm-password" type="password" class="account-modal__input" placeholder="Confirm password">
+                </section>
+            </div>
+
+            <p id="account-modal-status" class="account-modal__status"></p>
+            <p id="account-modal-ip" class="account-modal__ip"></p>
+
+            <div class="account-modal__actions">
+                <button id="account-modal-cancel" type="button" class="account-modal__button account-modal__button--ghost">Close</button>
+                <button id="account-modal-save" type="button" class="account-modal__button account-modal__button--primary">Save changes</button>
+            </div>
         </div>
     </div>
 

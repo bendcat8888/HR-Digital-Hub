@@ -1,23 +1,5 @@
 const documents = [
     {
-        id: "benefits-maxicare",
-        title: "Maxicare Beneficiaries Update",
-        description: "Update dependents and beneficiary information.",
-        category: "HMO",
-        icon: "users",
-        url: "#",
-        popularity: 95
-    },
-    {
-        id: "benefits-philhealth",
-        title: "PhilHealth Update Guide",
-        description: "Reference steps and required information for updates.",
-        category: "Government",
-        icon: "file-check",
-        url: "#",
-        popularity: 85
-    },
-    {
         id: "benefits-perks",
         title: "Benefits & Perks Overview",
         description: "Quick overview of available benefits and eligibility.",
@@ -25,15 +7,6 @@ const documents = [
         icon: "sparkles",
         url: "#",
         popularity: 80
-    },
-    {
-        id: "benefits-forms",
-        title: "Benefits Forms Pack",
-        description: "Common forms for enrollment, updates, and claims.",
-        category: "Forms",
-        icon: "folder",
-        url: "#",
-        popularity: 75
     },
     {
         id: "benefits-faq",

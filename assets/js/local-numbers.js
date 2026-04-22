@@ -12,6 +12,7 @@ const dom = {
 
 let toastTimer = null;
 let allRows = [];
+const revealedLocals = new Set();
 
 function showToast(message) {
     dom.toastText.textContent = message;
@@ -92,29 +93,52 @@ function sortRows(rows) {
     const out = rows.slice();
     if (mode === "number-desc") {
         out.sort((a, b) => {
-            const numA = parseInt(a.local) || 0;
-            const numB = parseInt(b.local) || 0;
+            const numA = parseInt(a.local, 10) || 0;
+            const numB = parseInt(b.local, 10) || 0;
             return numB - numA;
         });
     } else if (mode === "dept") {
         out.sort((a, b) => a.dept.localeCompare(b.dept) || a.local.localeCompare(b.local));
-    } else { // number-asc
+    } else {
         out.sort((a, b) => {
-            const numA = parseInt(a.local) || 0;
-            const numB = parseInt(b.local) || 0;
+            const numA = parseInt(a.local, 10) || 0;
+            const numB = parseInt(b.local, 10) || 0;
             return numA - numB;
         });
     }
     return out;
 }
 
+function maskLocal(local) {
+    const value = String(local || "");
+    if (value.length <= 4) return "***";
+    const head = value.slice(0, 2);
+    const tail = value.slice(-2);
+    return `${head}***${tail}`;
+}
+
+function maskUser(user) {
+    const value = String(user || "").trim();
+    if (!value) return "—";
+    return value
+        .split(/([\/&,+-]|\s+)/)
+        .map((part) => {
+            if (!part.trim() || /[\/&,+-]|\s+/.test(part)) return part;
+            if (part.length <= 2) return `${part[0]}*`;
+            return `${part[0]}${"*".repeat(Math.max(2, Math.min(4, part.length - 1)))}`;
+        })
+        .join("")
+        .replace(/\s{2,}/g, " ")
+        .trim();
+}
+
 function getFilteredRows() {
     const q = normalize(dom.search.value);
     let rows = allRows;
     if (q) {
-        rows = rows.filter(r => 
-            normalize(r.local).includes(q) || 
-            normalize(r.user).includes(q) || 
+        rows = rows.filter((r) =>
+            normalize(r.local).includes(q) ||
+            normalize(r.user).includes(q) ||
             normalize(r.dept).includes(q)
         );
     }
@@ -128,24 +152,33 @@ function render() {
     dom.empty.classList.toggle("hidden", rows.length !== 0);
 
     for (const r of rows) {
+        const isRevealed = revealedLocals.has(r.local);
+        const displayLocal = isRevealed ? r.local : maskLocal(r.local);
+        const displayUser = isRevealed ? (r.user || "—") : maskUser(r.user);
+        const actionLabel = isRevealed ? "Viewed" : "Reveal";
+        const actionClass = isRevealed
+            ? "border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
+            : "border-indigo-200 bg-white text-indigo-700 hover:bg-indigo-50";
+
         const tr = document.createElement("tr");
         tr.className = "hover:bg-slate-50";
         tr.innerHTML = `
             <td class="px-6 py-4">
                 <div class="font-bold text-indigo-600 bg-indigo-50 border border-indigo-100 inline-flex items-center px-2.5 py-1 rounded-lg">
                     <i data-lucide="phone" class="w-3.5 h-3.5 mr-1.5 opacity-70"></i>
-                    ${r.local}
+                    ${displayLocal}
                 </div>
             </td>
             <td class="px-6 py-4 font-medium text-slate-800">
-                ${r.user || "—"}
+                ${displayUser}
             </td>
             <td class="px-6 py-4 text-slate-600">
                 ${r.dept || "—"}
             </td>
             <td class="px-6 py-4">
-                <button type="button" class="inline-flex items-center justify-center w-9 h-9 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 transition-colors" aria-label="Copy local" data-copy="${encodeURIComponent(r.local)}">
-                    <i data-lucide="clipboard-copy" class="w-4 h-4"></i>
+                <button type="button" class="inline-flex items-center justify-center px-3 h-9 rounded-xl border ${actionClass} transition-colors" aria-label="Reveal local and user" data-reveal="${encodeURIComponent(r.local)}">
+                    <i data-lucide="eye" class="w-4 h-4 mr-2"></i>
+                    ${actionLabel}
                 </button>
             </td>
         `;
@@ -154,14 +187,21 @@ function render() {
 
     lucide.createIcons();
 
-    dom.tbody.querySelectorAll("[data-copy]").forEach(btn => {
+    dom.tbody.querySelectorAll("[data-reveal]").forEach((btn) => {
         btn.addEventListener("click", async () => {
-            const local = decodeURIComponent(btn.getAttribute("data-copy") || "");
+            const local = decodeURIComponent(btn.getAttribute("data-reveal") || "");
             try {
-                await navigator.clipboard.writeText(local);
-                showToast("Local " + local + " copied to clipboard.");
+                await fetch("/api/local-numbers/reveal", {
+                    method: "POST",
+                    credentials: "include",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ local })
+                });
+                revealedLocals.add(local);
+                render();
+                showToast(`Local ${local} revealed.`);
             } catch {
-                showToast("Copy not available in this browser.");
+                showToast("Unable to reveal number right now.");
             }
         });
     });
@@ -172,18 +212,17 @@ async function loadCsv() {
     if (!res.ok) throw new Error("Failed to load CSV (" + res.status + ")");
     const text = await res.text();
     const rows = parseCsv(text);
-    
-    // Header is usually: Local ,User,Area / Department
-    const header = rows[0] || [];
-    const localIdx = header.findIndex(h => normalize(h).includes("local"));
-    const userIdx = header.findIndex(h => normalize(h).includes("user"));
-    const deptIdx = header.findIndex(h => normalize(h).includes("area") || normalize(h).includes("department"));
 
-    const data = rows.slice(1).map(r => ({
+    const header = rows[0] || [];
+    const localIdx = header.findIndex((h) => normalize(h).includes("local"));
+    const userIdx = header.findIndex((h) => normalize(h).includes("user"));
+    const deptIdx = header.findIndex((h) => normalize(h).includes("area") || normalize(h).includes("department"));
+
+    const data = rows.slice(1).map((r) => ({
         local: String(r[localIdx >= 0 ? localIdx : 0] || "").trim(),
         user: String(r[userIdx >= 0 ? userIdx : 1] || "").trim(),
         dept: String(r[deptIdx >= 0 ? deptIdx : 2] || "").trim()
-    })).filter(r => r.local.length);
+    })).filter((r) => r.local.length);
 
     allRows = data;
 }
@@ -208,13 +247,6 @@ function setupPrivacyProtection() {
         event.preventDefault();
     });
 
-    dom.tableWrap.addEventListener("copy", (event) => {
-        if (!event.target.closest("[data-copy]")) {
-            event.preventDefault();
-            showToast(blockMessage);
-        }
-    });
-
     document.addEventListener("keydown", (event) => {
         const key = event.key.toLowerCase();
         const hasCtrlCmd = event.ctrlKey || event.metaKey;
@@ -236,6 +268,7 @@ function setupPrivacyProtection() {
 
 document.addEventListener("DOMContentLoaded", async () => {
     lucide.createIcons();
+
     try {
         await loadCsv();
         render();

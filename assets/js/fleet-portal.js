@@ -8,6 +8,16 @@ const fleetApps = [
         url: "https://www.appsheet.com/start/34431d83-b7ee-4ebe-8458-9ae7284d4453",
         popularity: 95,
         badge: "AppSheet"
+    },
+    {
+        id: "fleet-policy",
+        title: "Fleet Policy",
+        description: "View the official fleet management policy in the built-in PDF reader.",
+        category: "FINANCE",
+        icon: "file-text",
+        url: "fleet-policy.html",
+        popularity: 90,
+        badge: "PDF"
     }
 ];
 
@@ -31,6 +41,15 @@ function showToast(message) {
     dom.toast.classList.remove("hidden");
     if (toastTimer) window.clearTimeout(toastTimer);
     toastTimer = window.setTimeout(() => dom.toast.classList.add("hidden"), 2400);
+}
+
+function openApp(url) {
+    if (!url) return;
+    if (/^https?:\/\//i.test(url)) {
+        window.open(url, "_blank", "noopener,noreferrer");
+        return;
+    }
+    window.location.assign(url);
 }
 
 function getCategories() {
@@ -94,10 +113,6 @@ function getFilteredApps() {
     return items;
 }
 
-function openInNewTab(url) {
-    window.open(url, "_blank", "noopener,noreferrer");
-}
-
 function renderGrid() {
     const items = getFilteredApps();
     dom.count.textContent = String(items.length);
@@ -139,7 +154,7 @@ function renderGrid() {
         card.addEventListener("click", (e) => {
             const target = e.target;
             if (target instanceof HTMLElement && target.closest("button")) return;
-            openInNewTab(a.url);
+            openApp(a.url);
         });
 
         dom.grid.appendChild(card);
@@ -152,7 +167,7 @@ function renderGrid() {
             const id = btn.getAttribute("data-open");
             const a = fleetApps.find(x => x.id === id);
             if (!a) return;
-            openInNewTab(a.url);
+            openApp(a.url);
         });
     });
 
@@ -194,4 +209,3 @@ document.addEventListener("DOMContentLoaded", () => {
         if (match) showToast(`Showing: ${match.title}`);
     }
 });
-

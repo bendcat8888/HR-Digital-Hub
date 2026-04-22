@@ -59,18 +59,7 @@ const forms = [
         fileUrl: "../resources/OT Form.pdf",
         icon: "clock-9"
     },
-    {
-        id: "onboarding-checklist",
-        title: "New Hire Onboarding Checklist",
-        description: "Standard onboarding steps for managers and new hires.",
-        category: "HR",
-        format: "DOCX",
-        size: "65 KB",
-        updated: "2026-02-05",
-        popularity: 64,
-        fileUrl: "#",
-        icon: "list-checks"
-    },
+
     {
         id: "medical-reimbursement",
         title: "Medical Reimbursement Claim",
@@ -95,18 +84,7 @@ const forms = [
         fileUrl: "../resources/ATT Form.pdf",
         icon: "plane"
     },
-    {
-        id: "training-nomination",
-        title: "Training Nomination",
-        description: "Nominate an employee for training and development programs.",
-        category: "L&D",
-        format: "PDF",
-        size: "130 KB",
-        updated: "2026-02-12",
-        popularity: 58,
-        fileUrl: "#",
-        icon: "graduation-cap"
-    },
+
     {
         id: "it-access",
         title: "IT Request",

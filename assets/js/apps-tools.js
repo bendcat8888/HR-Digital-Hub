@@ -15,9 +15,9 @@ const apps = [
         description: "Create, edit, split, merge, and insert images. Reduces file size upto 85%",
         category: "PDF Tools",
         icon: "file-text",
-        url: "https://pdf.innogen.local/",
+        url: "https://pdf.innogen-pharma.com/",
         popularity: 90,
-        badge: "Internal"
+        badge: "Public"
     },
     {
         id: "qrstudio",
@@ -37,7 +37,8 @@ const apps = [
         icon: "clipboard-check",
         url: "https://clearance.innogen.local/",
         popularity: 83,
-        badge: "Internal"
+        badge: "Internal",
+        requiresAccessKey: true
     },
     {
         id: "pdf-to-word",
@@ -117,7 +118,8 @@ const apps = [
         icon: "sparkles",
         url: "https://rx.innogen.local/",
         popularity: 75,
-        badge: "Internal"
+        badge: "Internal",
+        requiresAccessKey: true
     },
     {
         id: "sql-final-rx-upload",
@@ -139,6 +141,16 @@ const apps = [
         url: "https://rxda.innogen.local/",
         popularity: 73,
         badge: "Internal"
+    },
+    {
+        id: "pharmacovigilance",
+        title: "Pharmacovigilance",
+        description: "Adverse Drug Reaction / Product Complaint Online Form",
+        category: "Regulatory",
+        icon: "shield-alert",
+        url: "https://docs.google.com/forms/d/e/1FAIpQLSflW-FHD5LmQOv3b87A_ydAMsiMU_CgxGkamXU9NWayOvYEkg/viewform",
+        popularity: 85,
+        badge: "Public"
     }
 ];
 
@@ -151,11 +163,24 @@ const dom = {
     clear: document.getElementById("apps-clear-filters"),
     sort: document.getElementById("apps-sort-by"),
     toast: document.getElementById("apps-toast"),
-    toastText: document.getElementById("apps-toast-text")
+    toastText: document.getElementById("apps-toast-text"),
+    internalModal: document.getElementById("internal-app-modal"),
+    internalBackdrop: document.getElementById("internal-app-modal-backdrop"),
+    internalCancel: document.getElementById("internal-app-cancel"),
+    internalContinue: document.getElementById("internal-app-continue"),
+    internalRetry: document.getElementById("internal-app-retry"),
+    internalHint: document.getElementById("internal-app-hint"),
+    internalTitle: document.getElementById("internal-app-title"),
+    internalBody: document.getElementById("internal-app-body")
 };
 
 let selectedCategory = "All";
 let toastTimer = null;
+let pendingApp = null;
+let lastInternalOpenFailed = false;
+let trustedInnoGenIp = false;
+let clientContextPromise = null;
+const TRUSTED_INNOGEN_IP = "36.255.107.205";
 
 function showToast(message) {
     dom.toastText.textContent = message;
@@ -200,6 +225,15 @@ function badgeClass(badge) {
     if (b === "appsheet") return "bg-indigo-50 text-indigo-700 border-indigo-100";
     if (b === "public") return "bg-sky-50 text-sky-700 border-sky-100";
     return "bg-slate-50 text-slate-700 border-slate-200";
+}
+
+function internalNetworkChip() {
+    return `
+        <span class="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-700">
+            <i data-lucide="wifi" class="w-3.5 h-3.5"></i>
+            Internal Network
+        </span>
+    `;
 }
 
 function getFilteredApps() {
@@ -248,7 +282,57 @@ function requireAccessKey() {
     return input === existing;
 }
 
+async function loadClientContext() {
+    if (clientContextPromise) return clientContextPromise;
+
+    clientContextPromise = fetch("/api/me", { credentials: "include" })
+        .then(async (response) => (response.ok ? response.json() : null))
+        .then((data) => {
+            const clientIp = String(data?.client_ip || "").trim();
+            const sourceIp = String(data?.source_ip || "").trim();
+            trustedInnoGenIp = clientIp === TRUSTED_INNOGEN_IP || sourceIp === TRUSTED_INNOGEN_IP;
+            return data;
+        })
+        .catch(() => null);
+
+    return clientContextPromise;
+}
+
+function showInternalFailureModal(title, body, hint) {
+    dom.internalTitle.textContent = title;
+    dom.internalBody.textContent = body;
+    dom.internalHint.textContent = hint;
+    dom.internalContinue.textContent = trustedInnoGenIp ? "Close" : "Try Again";
+    dom.internalRetry.classList.add("hidden");
+    dom.internalModal.classList.remove("hidden");
+    dom.internalModal.classList.add("flex");
+    lucide.createIcons();
+}
+
+async function launchApp(app) {
+    await loadClientContext();
+    openInNewTab(app);
+}
+
 function openInNewTab(app) {
+    if (app?.badge === "Internal") {
+        if (trustedInnoGenIp && typeof app.url === "string" && app.url.length) {
+            window.open(app.url, "_blank", "noopener,noreferrer");
+            return;
+        }
+        pendingApp = app;
+        lastInternalOpenFailed = false;
+        dom.internalTitle.textContent = `${app.title}`;
+        dom.internalBody.textContent = "This application is intended for use only when you are connected to the InnoGen Wi-Fi or corporate network. If you are outside the InnoGen network, the app may not load or function properly.";
+        dom.internalHint.textContent = "Check Wi-Fi / corporate network before continuing.";
+        dom.internalContinue.textContent = "Continue to App";
+        dom.internalRetry.classList.add("hidden");
+        dom.internalModal.classList.remove("hidden");
+        dom.internalModal.classList.add("flex");
+        lucide.createIcons();
+        return;
+    }
+
     const url = app?.url;
     if (app?.requiresAccessKey) {
         const ok = requireAccessKey();
@@ -266,6 +350,68 @@ function openInNewTab(app) {
         return;
     }
     if (typeof url === "string" && url.length) window.open(url, "_blank", "noopener,noreferrer");
+}
+
+function closeInternalModal() {
+    pendingApp = null;
+    lastInternalOpenFailed = false;
+    dom.internalModal.classList.add("hidden");
+    dom.internalModal.classList.remove("flex");
+}
+
+function continueInternalApp() {
+    const app = pendingApp;
+    if (!app) {
+        closeInternalModal();
+        return;
+    }
+
+    closeInternalModal();
+
+    const ok = app?.requiresAccessKey ? requireAccessKey() : true;
+    if (!ok) {
+        showToast("Access not granted.");
+        return;
+    }
+
+    if (trustedInnoGenIp) {
+        closeInternalModal();
+        if (typeof app.url === "string" && app.url.length) {
+            const popup = window.open("about:blank", "_blank", "noopener,noreferrer");
+            if (popup) {
+                popup.location.href = app.url;
+            }
+        }
+        return;
+    }
+
+    if (navigator.onLine === false) {
+        lastInternalOpenFailed = true;
+        showInternalFailureModal(
+            "Connection check needed",
+            "We could not verify a live network connection. Please connect to the InnoGen Wi-Fi or corporate network and try again.",
+            "Check Wi-Fi and retry."
+        );
+        return;
+    }
+
+    if (typeof app.url === "string" && app.url.length) {
+        const opened = window.open(app.url, "_blank", "noopener,noreferrer");
+        if (!opened) {
+            lastInternalOpenFailed = true;
+            showInternalFailureModal(
+                "Unable to open the app",
+                "The app did not open. Please confirm you are connected to the InnoGen Wi-Fi or corporate network, then retry.",
+                "Check Wi-Fi and retry."
+            );
+            return;
+        }
+    }
+}
+
+function retryInternalApp() {
+    if (!pendingApp) return;
+    continueInternalApp();
 }
 
 function renderGrid() {
@@ -291,6 +437,11 @@ function renderGrid() {
                         </div>
                     </div>
                     <p class="text-slate-600 text-sm leading-relaxed">${a.description}</p>
+                    ${a.badge === "Internal" ? `
+                        <div class="mt-3">
+                            ${internalNetworkChip()}
+                        </div>
+                    ` : ""}
                 </div>
                 <span class="shrink-0 text-xs font-bold border px-2 py-1 rounded-lg ${badgeClass(a.badge)}">${a.badge}</span>
             </div>
@@ -309,7 +460,7 @@ function renderGrid() {
         card.addEventListener("click", (e) => {
             const target = e.target;
             if (target instanceof HTMLElement && target.closest("button")) return;
-            openInNewTab(a);
+            void launchApp(a);
         });
 
         dom.grid.appendChild(card);
@@ -322,7 +473,7 @@ function renderGrid() {
             const id = btn.getAttribute("data-open");
             const a = apps.find(x => x.id === id);
             if (!a) return;
-            openInNewTab(a);
+            void launchApp(a);
         });
     });
 
@@ -349,18 +500,24 @@ function clearFilters() {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
-    renderChips();
-    renderGrid();
-    lucide.createIcons();
+    void loadClientContext().finally(() => {
+        renderChips();
+        renderGrid();
+        lucide.createIcons();
 
-    dom.search.addEventListener("input", () => renderGrid());
-    dom.sort.addEventListener("change", () => renderGrid());
-    dom.clear.addEventListener("click", () => clearFilters());
+        dom.search.addEventListener("input", () => renderGrid());
+        dom.sort.addEventListener("change", () => renderGrid());
+        dom.clear.addEventListener("click", () => clearFilters());
+        dom.internalBackdrop.addEventListener("click", closeInternalModal);
+        dom.internalCancel.addEventListener("click", closeInternalModal);
+        dom.internalContinue.addEventListener("click", continueInternalApp);
+        dom.internalRetry.addEventListener("click", retryInternalApp);
 
-    const hash = (window.location.hash || "").slice(1);
-    if (hash) {
-        const id = decodeURIComponent(hash);
-        const match = apps.find(a => a.id === id);
-        if (match) showToast(`Showing: ${match.title}`);
-    }
+        const hash = (window.location.hash || "").slice(1);
+        if (hash) {
+            const id = decodeURIComponent(hash);
+            const match = apps.find(a => a.id === id);
+            if (match) showToast(`Showing: ${match.title}`);
+        }
+    });
 });

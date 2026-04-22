@@ -1,7 +1,7 @@
 const dom = {
     search: document.getElementById("email-search"),
     sort: document.getElementById("email-sort"),
-    downloadContacts: document.getElementById("email-download-contacts"),
+    requestButton: document.getElementById("email-download-contacts"),
     clear: document.getElementById("email-clear"),
     count: document.getElementById("email-count"),
     tbody: document.getElementById("email-tbody"),
@@ -18,7 +18,8 @@ const dom = {
 };
 
 let toastTimer = null;
-let allRows = [];
+let searchTimer = null;
+let requestSeq = 0;
 
 function showToast(message) {
     dom.toastText.textContent = message;
@@ -27,158 +28,8 @@ function showToast(message) {
     toastTimer = window.setTimeout(() => dom.toast.classList.add("hidden"), 2400);
 }
 
-function escapeCsvField(value) {
-    const v = String(value ?? "");
-    if (/[",\r\n]/.test(v)) {
-        return `"${v.replace(/"/g, '""')}"`;
-    }
-    return v;
-}
-
-function toTitleCase(text) {
-    return String(text || "")
-        .split(/\s+/g)
-        .filter(Boolean)
-        .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
-        .join(" ");
-}
-
-function defaultContactNameFromEmail(email) {
-    const local = String(email || "").split("@")[0] || "";
-    const spaced = local.replace(/[._-]+/g, " ").trim();
-    const named = toTitleCase(spaced);
-    return named || String(email || "");
-}
-
-function buildGoogleContactsCsv(rows) {
-    const header = [
-        "Name",
-        "Given Name",
-        "Family Name",
-        "E-mail 1 - Type",
-        "E-mail 1 - Value",
-        "Notes"
-    ];
-
-    const lines = [header.map(escapeCsvField).join(",")];
-
-    rows.forEach((r) => {
-        lines.push(
-            [
-                defaultContactNameFromEmail(r.email),
-                "",
-                "",
-                "Work",
-                r.email,
-                r.restrictions || ""
-            ]
-                .map(escapeCsvField)
-                .join(",")
-        );
-    });
-
-    return lines.join("\r\n");
-}
-
-function downloadTextFile(filename, text, mimeType) {
-    const blob = new Blob([text], { type: mimeType });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    window.setTimeout(() => URL.revokeObjectURL(url), 0);
-}
-
-function parseCsv(text) {
-    const rows = [];
-    let row = [];
-    let field = "";
-    let i = 0;
-    let inQuotes = false;
-
-    while (i < text.length) {
-        const ch = text[i];
-
-        if (inQuotes) {
-            if (ch === '"') {
-                const next = text[i + 1];
-                if (next === '"') {
-                    field += '"';
-                    i += 2;
-                    continue;
-                }
-                inQuotes = false;
-                i += 1;
-                continue;
-            }
-            field += ch;
-            i += 1;
-            continue;
-        }
-
-        if (ch === '"') {
-            inQuotes = true;
-            i += 1;
-            continue;
-        }
-
-        if (ch === ",") {
-            row.push(field);
-            field = "";
-            i += 1;
-            continue;
-        }
-
-        if (ch === "\r") {
-            i += 1;
-            continue;
-        }
-
-        if (ch === "\n") {
-            row.push(field);
-            field = "";
-            if (row.length > 1 || row[0]?.length) rows.push(row);
-            row = [];
-            i += 1;
-            continue;
-        }
-
-        field += ch;
-        i += 1;
-    }
-
-    row.push(field);
-    if (row.length > 1 || row[0]?.length) rows.push(row);
-    return rows;
-}
-
 function normalize(text) {
     return String(text || "").toLowerCase().trim();
-}
-
-function sortRows(rows) {
-    const mode = dom.sort.value;
-    const out = rows.slice();
-    if (mode === "za") {
-        out.sort((a, b) => b.email.localeCompare(a.email));
-    } else if (mode === "restrictions") {
-        out.sort((a, b) => a.restrictions.localeCompare(b.restrictions) || a.email.localeCompare(b.email));
-    } else {
-        out.sort((a, b) => a.email.localeCompare(b.email));
-    }
-    return out;
-}
-
-function getFilteredRows() {
-    const q = normalize(dom.search.value);
-    let rows = allRows;
-    if (q) {
-        rows = rows.filter(r => normalize(r.email).includes(q) || normalize(r.restrictions).includes(q));
-    }
-    return sortRows(rows);
 }
 
 function rowBadgeClass(restrictions) {
@@ -188,28 +39,67 @@ function rowBadgeClass(restrictions) {
     return "bg-slate-50 text-slate-700 border-slate-200";
 }
 
-function render() {
-    const rows = getFilteredRows();
-    dom.count.textContent = String(rows.length);
-    dom.tbody.innerHTML = "";
-    dom.empty.classList.toggle("hidden", rows.length !== 0);
+function escapeHtml(text) {
+    return String(text || "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+}
 
-    for (const r of rows) {
+function renderIdleState() {
+    dom.count.textContent = "Search required";
+    dom.tbody.innerHTML = "";
+    dom.tableWrap.classList.add("hidden");
+    dom.empty.classList.remove("hidden");
+    dom.empty.innerHTML = `
+        <div class="inline-flex items-center justify-center w-16 h-16 bg-indigo-50 rounded-full text-indigo-500 mb-4 border border-indigo-100">
+            <i data-lucide="search" class="w-8 h-8"></i>
+        </div>
+        <h3 class="text-xl font-semibold text-slate-900">Start with a keyword</h3>
+        <p class="mt-2 text-slate-600 max-w-xl mx-auto">Type at least two characters to reveal matching email accounts. This keeps the directory private and prevents the full list from being shown by default.</p>
+    `;
+    lucide.createIcons();
+}
+
+function renderNoMatches() {
+    dom.count.textContent = "0 matches";
+    dom.tbody.innerHTML = "";
+    dom.tableWrap.classList.add("hidden");
+    dom.empty.classList.remove("hidden");
+    dom.empty.innerHTML = `
+        <div class="inline-flex items-center justify-center w-16 h-16 bg-slate-100 rounded-full text-slate-400 mb-4">
+            <i data-lucide="search-x" class="w-8 h-8"></i>
+        </div>
+        <h3 class="text-xl font-semibold text-slate-900">No matches found</h3>
+        <p class="mt-2 text-slate-600">Try a different keyword or clear the search.</p>
+    `;
+    lucide.createIcons();
+}
+
+function renderRows(rows) {
+    dom.count.textContent = `${rows.length} match${rows.length === 1 ? "" : "es"}`;
+    dom.tbody.innerHTML = "";
+    dom.empty.classList.add("hidden");
+    dom.tableWrap.classList.remove("hidden");
+
+    for (const row of rows) {
         const tr = document.createElement("tr");
         tr.className = "hover:bg-slate-50";
         tr.innerHTML = `
             <td class="px-6 py-4">
-                <div class="font-semibold text-slate-900">${r.email}</div>
+                <div class="font-semibold text-slate-900">${escapeHtml(row.email)}</div>
             </td>
             <td class="px-6 py-4">
-                <span class="inline-flex items-center px-2 py-1 rounded-lg border text-xs font-bold ${rowBadgeClass(r.restrictions)}">${r.restrictions || "—"}</span>
+                <span class="inline-flex items-center px-2 py-1 rounded-lg border text-xs font-bold ${rowBadgeClass(row.restrictions)}">${escapeHtml(row.restrictions || "—")}</span>
             </td>
             <td class="px-6 py-4">
                 <div class="flex items-center gap-2">
-                    <button type="button" class="inline-flex items-center justify-center w-10 h-10 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 transition-colors" aria-label="Copy email" data-copy="${encodeURIComponent(r.email)}">
+                    <button type="button" class="inline-flex items-center justify-center w-10 h-10 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 transition-colors" aria-label="Copy email" data-copy="${encodeURIComponent(row.email)}">
                         <i data-lucide="clipboard-copy" class="w-4 h-4"></i>
                     </button>
-                    <a class="inline-flex items-center justify-center w-10 h-10 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 transition-colors" aria-label="Email" href="mailto:${r.email}">
+                    <a class="inline-flex items-center justify-center w-10 h-10 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 transition-colors" aria-label="Email" href="mailto:${escapeHtml(row.email)}">
                         <i data-lucide="send" class="w-4 h-4"></i>
                     </a>
                 </div>
@@ -220,7 +110,7 @@ function render() {
 
     lucide.createIcons();
 
-    dom.tbody.querySelectorAll("[data-copy]").forEach(btn => {
+    dom.tbody.querySelectorAll("[data-copy]").forEach((btn) => {
         btn.addEventListener("click", async () => {
             const email = decodeURIComponent(btn.getAttribute("data-copy") || "");
             try {
@@ -233,27 +123,75 @@ function render() {
     });
 }
 
-async function loadCsv() {
-    const res = await fetch("../resources/EmailAccounts2.csv", { cache: "no-store" });
-    if (!res.ok) throw new Error(`Failed to load CSV (${res.status})`);
-    const text = await res.text();
-    const rows = parseCsv(text);
-    const header = rows[0] || [];
-    const emailIdx = header.findIndex(h => normalize(h) === "email");
-    const restrictionsIdx = header.findIndex(h => normalize(h) === "restrictions");
+async function fetchMatches(query) {
+    const sort = dom.sort.value || "az";
+    const url = new URL("/api/email-accounts", window.location.origin);
+    url.searchParams.set("query", query);
+    url.searchParams.set("sort", sort);
 
-    const data = rows.slice(1).map(r => ({
-        email: String(r[emailIdx >= 0 ? emailIdx : 0] || "").trim(),
-        restrictions: String(r[restrictionsIdx >= 0 ? restrictionsIdx : 1] || "").trim()
-    })).filter(r => r.email.length);
+    const response = await fetch(url.toString(), {
+        credentials: "include",
+        cache: "no-store",
+        headers: { Accept: "application/json" }
+    });
 
-    allRows = data;
+    if (!response.ok) {
+        throw new Error(`Request failed (${response.status})`);
+    }
+
+    return response.json();
+}
+
+async function updateResults() {
+    const query = normalize(dom.search.value);
+    if (query.length < 2) {
+        renderIdleState();
+        return;
+    }
+
+    const currentRequest = ++requestSeq;
+    dom.count.textContent = "Searching...";
+    dom.tableWrap.classList.add("hidden");
+    dom.empty.classList.remove("hidden");
+    dom.empty.innerHTML = `
+        <div class="inline-flex items-center justify-center w-16 h-16 bg-indigo-50 rounded-full text-indigo-500 mb-4 border border-indigo-100 animate-pulse">
+            <i data-lucide="loader-2" class="w-8 h-8"></i>
+        </div>
+        <h3 class="text-xl font-semibold text-slate-900">Searching securely</h3>
+        <p class="mt-2 text-slate-600">Only matching rows are requested from the server.</p>
+    `;
+    lucide.createIcons();
+
+    try {
+        const data = await fetchMatches(query);
+        if (currentRequest !== requestSeq) return;
+        const rows = Array.isArray(data.items) ? data.items : [];
+        if (!rows.length) {
+            renderNoMatches();
+            return;
+        }
+        renderRows(rows);
+    } catch {
+        if (currentRequest !== requestSeq) return;
+        dom.count.textContent = "Search unavailable";
+        dom.tableWrap.classList.add("hidden");
+        dom.empty.classList.remove("hidden");
+        dom.empty.innerHTML = `
+            <div class="inline-flex items-center justify-center w-16 h-16 bg-rose-50 rounded-full text-rose-500 mb-4 border border-rose-100">
+                <i data-lucide="alert-triangle" class="w-8 h-8"></i>
+            </div>
+            <h3 class="text-xl font-semibold text-slate-900">Unable to load matches</h3>
+            <p class="mt-2 text-slate-600">Please try again in a moment.</p>
+        `;
+        lucide.createIcons();
+    }
 }
 
 function clearAll() {
     dom.search.value = "";
     dom.sort.value = "az";
-    render();
+    requestSeq += 1;
+    renderIdleState();
 }
 
 function setupPrivacyProtection() {
@@ -296,28 +234,25 @@ function setupPrivacyProtection() {
     });
 }
 
-document.addEventListener("DOMContentLoaded", async () => {
+document.addEventListener("DOMContentLoaded", () => {
     lucide.createIcons();
-    try {
-        await loadCsv();
-        render();
-        showToast("Email list loaded.");
-    } catch {
-        allRows = [];
-        render();
-        showToast("Unable to load EmailAccounts2.csv.");
-    }
-
     setupPrivacyProtection();
+    renderIdleState();
 
-    dom.search.addEventListener("input", () => render());
-    dom.sort.addEventListener("change", () => render());
-    dom.clear.addEventListener("click", () => clearAll());
-    dom.downloadContacts.addEventListener("click", () => {
-        if (!allRows.length) {
-            showToast("No emails to export yet.");
-            return;
+    dom.search.addEventListener("input", () => {
+        if (searchTimer) window.clearTimeout(searchTimer);
+        searchTimer = window.setTimeout(() => updateResults(), 220);
+    });
+
+    dom.sort.addEventListener("change", () => {
+        if (normalize(dom.search.value).length >= 2) {
+            updateResults();
         }
+    });
+
+    dom.clear.addEventListener("click", clearAll);
+
+    dom.requestButton.addEventListener("click", () => {
         dom.requestName.value = "";
         dom.requestEmail.value = "";
         dom.requestModal.classList.remove("hidden");
@@ -338,16 +273,16 @@ document.addEventListener("DOMContentLoaded", async () => {
             return;
         }
 
-        // Construct a mailto link to open the default email client
         const itEmail = "ithelpdesk@innogen-pharma.com";
-        const subject = encodeURIComponent("Request for Corporate Email Contacts CSV");
+        const subject = encodeURIComponent("Request for Corporate Email Contacts list");
         const body = encodeURIComponent(
-            `Hi IT Team,\n\nI would like to request a copy of the Corporate Email Contacts CSV.\n\nDetails:\nName: ${name}\nEmail: ${email}\n\nThank you.`
+            `Hi IT Team,\n\nI would like to request access to the Corporate Email Contacts list.\n\nDetails:\nName: ${name}\nEmail: ${email}\n\nThank you.`
         );
 
         window.location.href = `mailto:${itEmail}?subject=${subject}&body=${body}`;
-
         closeRequestModal();
         showToast("Opening your email client...");
     });
+
+    showToast("Type a keyword to reveal matching email accounts.");
 });
