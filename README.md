@@ -26,7 +26,7 @@
 ---
 
 ## 🎯 Project Overview
-The **Internal Centralize Portal Hub** serves as the "Digital Nervous System" for InnoGen. It is a high-performance, searchable gateway designed to eliminate information silos. It provides employees with a single point of access for corporate tools, IT support, and verified directory data.
+The **InnoGen One • Digital Hub** serves as the "Digital Nervous System" for InnoGen. It is a high-performance, searchable gateway designed to eliminate information silos. It provides employees with a single point of access for corporate tools, IT support, and verified directory data.
 
 This version is already integrated with **FastAPI + NGINX + Redis** and an external **SSO** provider:
 - `/login` starts the SSO flow.
