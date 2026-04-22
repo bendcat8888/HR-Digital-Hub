@@ -33,6 +33,7 @@ SESSION_TTL_SECONDS = int(os.getenv("SESSION_TTL_SECONDS", "28800"))
 SESSION_COOKIE_SECURE = os.getenv("SESSION_COOKIE_SECURE", "true").lower() == "true"
 SESSION_COOKIE_SAMESITE = os.getenv("SESSION_COOKIE_SAMESITE", "lax")
 REDIS_URL = os.getenv("REDIS_URL", "redis://redis:6379/0")
+REDIS_ALLOW_MEMORY_FALLBACK = os.getenv("REDIS_ALLOW_MEMORY_FALLBACK", "false").lower() == "true"
 SSO_BASE_URL = os.getenv("SSO_BASE_URL", "https://sso.innogen-pharma.com")
 ALLOWED_EMAIL_DOMAINS = {
     d.strip().lower()
@@ -53,6 +54,7 @@ PUBLIC_PATHS = {
     "/api/auth/logout",
     "/healthz",
     "/favicon.ico",
+    "/assets/img/favicon.png",
 }
 
 
@@ -68,7 +70,11 @@ class SessionStore:
             logger.info("Connected to Redis session store")
         except Exception as error:
             self.redis = None
-            logger.warning("Redis unavailable, using in-memory sessions: %s", error)
+            if REDIS_ALLOW_MEMORY_FALLBACK:
+                logger.warning("Redis unavailable, using in-memory sessions: %s", error)
+                return
+            logger.error("Redis unavailable and in-memory fallback is disabled: %s", error)
+            raise RuntimeError("Redis session store is required in production") from error
 
     async def close(self) -> None:
         if self.redis is not None:
@@ -184,11 +190,19 @@ def validate_next_path(next_path: str | None) -> str:
 
 def file_response(root_dir: Path, requested_path: str) -> FileResponse:
     normalized = (root_dir / requested_path).resolve()
-    if not str(normalized).startswith(str(root_dir.resolve())):
+    root = root_dir.resolve()
+    try:
+        normalized.relative_to(root)
+    except ValueError:
         raise HTTPException(status_code=403, detail="Forbidden path")
     if not normalized.exists() or not normalized.is_file():
         raise HTTPException(status_code=404, detail="File not found")
     return FileResponse(normalized)
+
+
+def attach_request_id(response: Response, request_id: str) -> Response:
+    response.headers["X-Request-ID"] = request_id
+    return response
 
 
 def normalize_search(text: str) -> str:
@@ -558,6 +572,7 @@ async def security_and_access_log_middleware(request: Request, call_next):
         if session_id:
             request.state.user = await session_store.get(session_id)
         response = await call_next(request)
+        attach_request_id(response, request_id)
         duration_ms = int((time.time() - started_at) * 1000)
         log_json(
             access_logger,
@@ -584,6 +599,7 @@ async def security_and_access_log_middleware(request: Request, call_next):
             else:
                 next_path = quote(request.url.path)
                 response = RedirectResponse(url=f"/login?next={next_path}", status_code=302)
+            attach_request_id(response, request_id)
             duration_ms = int((time.time() - started_at) * 1000)
             log_json(
                 access_logger,
@@ -610,6 +626,7 @@ async def security_and_access_log_middleware(request: Request, call_next):
                 next_path = quote(request.url.path)
                 response = RedirectResponse(url=f"/login?next={next_path}", status_code=302)
             clear_session_cookie(response)
+            attach_request_id(response, request_id)
             duration_ms = int((time.time() - started_at) * 1000)
             log_json(
                 access_logger,
@@ -631,6 +648,7 @@ async def security_and_access_log_middleware(request: Request, call_next):
         request.state.user = user_session
 
     response = await call_next(request)
+    attach_request_id(response, request_id)
     duration_ms = int((time.time() - started_at) * 1000)
     log_json(
         access_logger,
@@ -655,6 +673,11 @@ async def healthz() -> dict[str, str]:
     return {"status": "ok"}
 
 
+@app.get("/favicon.ico")
+async def favicon() -> FileResponse:
+    return FileResponse(ASSETS_DIR / "img" / "favicon.png", media_type="image/png")
+
+
 @app.get("/login", response_class=HTMLResponse)
 async def login_page(request: Request) -> HTMLResponse:
     next_path = validate_next_path(request.query_params.get("next"))
@@ -666,8 +689,8 @@ async def login_page(request: Request) -> HTMLResponse:
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Login • InnoGen Portal Hub</title>
-  <link rel="icon" type="image/png" href="https://sso.innogen-pharma.com/static/favicon.png" />
-  <link rel="apple-touch-icon" href="https://sso.innogen-pharma.com/static/favicon.png" />
+  <link rel="icon" type="image/png" href="/favicon.ico" />
+  <link rel="apple-touch-icon" href="/assets/img/favicon.png" />
   <script>document.title = "InnoGen One • Digital Hub";</script>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
@@ -784,7 +807,7 @@ async def login_page(request: Request) -> HTMLResponse:
     />
     <button id="continueWithInnogen" type="button" class="mt-5 w-full inline-flex items-center justify-center gap-3 rounded-xl bg-gradient-to-r from-[#451c86] via-[#5b21b6] to-[#7c3aed] px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-purple-500/20 hover:from-[#3b1778] hover:via-[#4c1d95] hover:to-[#6d28d9]">
       <span class="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white p-1 shadow-sm ring-1 ring-white/60">
-        <img src="https://sso.innogen-pharma.com/static/favicon.png" alt="InnoGen" class="h-5 w-5 object-contain" />
+         <img src="/assets/img/favicon.png" alt="InnoGen" class="h-5 w-5 object-contain" />
       </span>
       <span>Continue with InnoGen</span>
     </button>
